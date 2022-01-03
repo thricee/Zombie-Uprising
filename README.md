@@ -26,5 +26,5 @@ loadstring(game:HttpGet('https://raw.githubusercontent.com/ArkaneWorks/Zombie-Up
 ```
 
 ## Credits
-Pepsi -> Stylish UI Library. https://v3rmillion.net/showthread.php?tid=1139856
-Kiriot22 -> ESP Library. https://v3rmillion.net/showthread.php?tid=1088719
+- Pepsi -> Stylish UI Library. https://v3rmillion.net/showthread.php?tid=1139856
+- Kiriot22 -> ESP Library. https://v3rmillion.net/showthread.php?tid=1088719
