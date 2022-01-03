@@ -24,3 +24,7 @@ A state of the art UI-Based exploit on the hit game **Zombie Uprising**.
 ```lua
 loadstring(game:HttpGet('https://raw.githubusercontent.com/ArkaneWorks/Zombie-Uprising/main/init.lua'))()
 ```
+
+## Credits
+Pepsi -> Stylish UI Library. https://v3rmillion.net/showthread.php?tid=1139856
+Kiriot22 -> ESP Library. https://v3rmillion.net/showthread.php?tid=1088719
