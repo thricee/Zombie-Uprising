@@ -14,3 +14,7 @@ A state of the art UI-Based exploit on the hit game **Zombie Uprising**.
 - Automatically pickup powerups
 - Instantly revive teammates
 - Self revive
+
+```lua
+loadstring(game:HttpGet('https://raw.githubusercontent.com/ArkaneWorks/Zombie-Uprising/main/init.lua'))()
+```
