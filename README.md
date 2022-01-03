@@ -15,6 +15,10 @@ A state of the art UI-Based exploit on the hit game **Zombie Uprising**.
 - Instantly revive teammates
 - Self revive
 
+## Showcase
+
+![Screenshot of the UI](https://i.imgur.com/ywZ7WEg.png)
+
 ## Script Loader
 
 ```lua
