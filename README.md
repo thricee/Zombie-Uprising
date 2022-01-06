@@ -1,7 +1,5 @@
 # Zombie Uprising
 
-# Features
-
 - Kill all zombies (AFK Friendly)
 - Silent Aim
 - Wallbang
