@@ -1,0 +1,566 @@
+-- // Zombie Uprising Cheat | Credits: Pepsi - UI Library & Kiriot - ESP Library
+-- // Works as of 22th December 2021
+-- // Variables & Functions
+
+-- // Wait until game is loaded.
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerMouse = LocalPlayer:GetMouse()
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local ZombiesFolder = workspace:WaitForChild('Zombies')
+local CursorPosition = UserInputService:GetMouseLocation()
+local ESPLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/ArkaneWorks/Util/main/ESP_LIBRARY"))()
+local Library = loadstring(game:GetObjects("rbxassetid://7657867786")[1].Source)()
+local CurrentZombies = ZombiesFolder:GetChildren()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RemoteEvent = ReplicatedStorage:WaitForChild('RemoteEvent')
+local WallbangParams = RaycastParams.new()
+local NormalParams = RaycastParams.new()
+local FunctionsModule
+WallbangParams.FilterType = Enum.RaycastFilterType.Blacklist
+NormalParams.FilterType = Enum.RaycastFilterType.Blacklist
+ESPLibrary.Players = false
+ESPLibrary:Toggle(true)
+ESPLibrary.Objects = {}
+
+for i, v in pairs(getloadedmodules()) do
+    if tostring(v) == 'Functions' and v:IsA('ModuleScript') then
+        FunctionsModule = require(v)
+    end
+end
+
+local function CastRay(Origin, Direction, Parameters)
+    local Result = workspace.Raycast(workspace, Origin, Direction, Parameters)
+    return Result
+end
+
+local function Wallcheck(OriginPart, DestinationPart, SelectedParams)
+    
+    if Library.flags['Wallbang'] then
+        return true
+    end
+
+    if SelectedParams then
+        -- // Global raycast ignore exists.
+        local RayResult = CastRay(OriginPart.Position (DestinationPart.Position - OriginPart.Position).Unit * 500, SelectedParams or NormalParams)
+        local HitPart = RayResult.Instance
+
+        if HitPart and HitPart.IsDescendantOf(HitPart, DestinationPart.Parent) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function GetZombies()
+    -- // Find Boss
+
+    local Map = workspace.FindFirstChild(workspace, 'Map')
+    if Map then
+
+        local BossFolder = Map.FindFirstChild(Map, 'BossFolder')
+
+        if BossFolder then
+            local BossZombie = BossFolder.FindFirstChild(BossFolder, 'Boss')
+
+            if BossZombie and not table.find(CurrentZombies, BossZombie) then
+                table.insert(CurrentZombies, BossZombie)
+            end
+        end
+
+    end
+
+    return CurrentZombies
+end
+
+local function NewInstance(InstanceType, Parent)
+    local NewObject = Instance.new(InstanceType)
+    syn.protect_gui(NewObject)
+
+    if Parent then
+        NewObject.Parent = Parent
+    end
+
+    return NewObject
+end
+
+local function ClosestZombie()
+    -- // Variables
+    local MaxDistance = Library.flags['FOVRadius']
+    local CurrentTarget
+    CursorPosition = UserInputService.GetMouseLocation(UserInputService)
+
+    if LocalPlayer.Character and LocalPlayer.Character.Humanoid and LocalPlayer.Character.Humanoid.Health > 0 then
+        -- // Check character and if alive.
+        local ZombieTable = GetZombies()
+        for Index, Zombie in pairs(ZombieTable) do
+            -- // Iterate through every zombie.
+
+            if not Zombie.Parent then
+                table.remove(CurrentZombies, Index)
+                continue
+            end
+
+
+            if Zombie and Zombie.Humanoid and Zombie.Humanoid.Health > 0 and Zombie.Head and Wallcheck(LocalPlayer.Character.Head, Zombie.Head, NormalParams) then
+                -- // Zombie is alive.
+    
+                    local ZombiePosition, ZombieVisible = Camera.WorldToViewportPoint(Camera, Zombie.Head.Position)
+        
+                    if ZombieVisible then
+                            -- // Zombie is visible
+        
+                        local Distance = (CursorPosition - Vector2.new(ZombiePosition.X, ZombiePosition.Y)).Magnitude
+        
+                        if Distance <= MaxDistance then
+                                -- // Distance is lower or equal to maximum distance. | Set variables.
+        
+                            MaxDistance = Distance
+                            CurrentTarget = Zombie
+
+                        end
+
+                    end
+
+                end
+
+
+        end
+
+    end
+
+    return CurrentTarget
+end
+
+-- // Main Functions
+
+local ThirdPersonHook
+ThirdPersonHook = hookmetamethod(game, '__index', function(...)
+    
+    local Self, Key = ...
+
+    if Library.flags['SilentAim'] and Self == PlayerMouse and tostring(Key) == 'Hit' then
+        -- // Mouse CFrame index.
+
+        local CurrentZombie = ClosestZombie()
+
+        if CurrentZombie and CurrentZombie.Head and CurrentZombie.Humanoid and CurrentZombie.Humanoid then
+            -- // Zombie is alive.
+            return CurrentZombie.Head.CFrame
+        end
+    end
+
+    return ThirdPersonHook(...)
+end)
+
+local NamecallHook;
+NamecallHook = hookmetamethod(game, '__namecall', function(Self, ...)
+    -- // Variables
+
+    local Method = getnamecallmethod()
+
+    if not checkcaller() then
+        if tostring(Self) == 'Workspace' and tostring(Method) == 'FindPartOnRayWithIgnoreList' then
+        -- // Method is Raycast
+
+        local Arguments = {...}
+        local OriginPosition = Arguments[1].Origin
+        local Direction = Arguments[1].Direction
+        local SelectedParams = NormalParams
+        local RayRange = FunctionsModule._stats.Loadout.Equipped.Value.RaycastRange.Value
+
+        if RayRange then
+            -- // Make all weapon have the same raycast range.
+            Direction = (Direction / RayRange) * 2000
+        end
+
+        if Library.flags['Wallbang'] then
+            -- // Wallbang is enabled.
+
+            local Map = workspace.Map
+            if Map then
+                SelectedParams = WallbangParams
+            end
+
+        end
+
+        if Library.flags['SilentAim'] and LocalPlayer.CameraMode == Enum.CameraMode.LockFirstPerson then
+            -- // Silent aim enabled and is first person. (I found this to be lag reducing.)
+
+            local CurrentRay = Arguments[1]
+            local RayOrigin = CurrentRay.Origin
+
+            local CurrentZombie = ClosestZombie()
+
+            if CurrentZombie and CurrentZombie.Head and CurrentZombie.Humanoid and CurrentZombie.Humanoid then
+                -- // Zombie exists. | Set new Raycast
+                Direction = (CurrentZombie.Head.Position - RayOrigin).Unit * 2000
+            end
+            
+        end
+
+        local Result = CastRay(OriginPosition, Direction, SelectedParams)
+
+        if Result and not Result.Instance.IsDescendantOf(Result.Instance, LocalPlayer.Character) then
+            -- // Successfully casted ray.
+            return Result.Instance, Result.Position, Result.Normal, Result.Material
+        end
+
+        return NamecallHook(Self, unpack(Arguments))
+
+        end
+    end
+
+    return NamecallHook(Self, ...)
+end)
+
+-- // Draw UI Library
+local Window = Library:CreateWindow({
+    Name = "Zombie Uprising",
+    Themeable = {}
+})
+
+local GeneralTab = Window:CreateTab({Name = "General"})
+local CombatSection = GeneralTab:CreateSection({Name = "Combat"}) do
+    CombatSection:AddToggle({Name = "Kill All", Keybind = {Mode = 'Dynamic'}, Flag = "KillAura"})
+    CombatSection:AddToggle({Name = "Silent Aim", Keybind = {Mode = 'Dynamic'}, Flag = "SilentAim"})
+    CombatSection:AddToggle({Name = "Wallbang", Flag = "Wallbang"})
+    CombatSection:AddToggle({Name = "Show FOV", Flag = "ShowFOV"})
+    CombatSection:AddSlider({Name = "FOV Radius", Flag = "FOVRadius", Value = 100, Min = 1, Max = 430})
+    CombatSection:AddColorpicker({Name = 'FOV Color', Value = Color3.fromRGB(255, 150, 0), Flag = 'FOVColor'})
+end
+
+
+local ESPSection = GeneralTab:CreateSection({Name = "ESP"}) do
+    ESPSection:AddToggle({Name = "Track Zombies", Keybind = {Mode = 'Dynamic'}, Callback = function(Value)
+        ESPLibrary.Zombies = Value
+    end})
+    ESPSection:AddToggle({Name = "Track Perk Machines", Keybind = {Mode = 'Dynamic'}, Callback = function(Value)
+        ESPLibrary.PerkMachines = Value
+    end})
+end
+
+local ESPSection = GeneralTab:CreateSection({Name = "ESP Settings"}) do
+    ESPSection:AddToggle({Name = "Enable ESP", Keybind = {Mode = 'Dynamic'}, Callback = function(Value)
+        ESPLibrary:Toggle(Value)
+    end})
+    ESPSection:AddToggle({Name = "Enable Tracers", Callback = function(Value)
+        ESPLibrary.Tracers = Value
+    end})
+    ESPSection:AddToggle({Name = "Enable Boxes", Callback = function(Value)
+        ESPLibrary.Boxes = Value
+    end})
+    ESPSection:AddToggle({Name = "Facing Camera", Callback = function(Value)
+        ESPLibrary.FaceCamera = Value
+    end})
+end
+
+local AutomationSection = GeneralTab:CreateSection({Name = 'Automation'}) do
+    AutomationSection:AddToggle({Name = "Pickup Powerups", Keybind = {Mode = 'Dynamic'}, Flag = "PowerUps", Callback = function(Value)
+        if Value then
+            -- // Toggle is enabled.
+            local PowerUpsFolder = workspace:FindFirstChild('PowerUps')
+
+            if PowerUpsFolder then
+                -- // Power ups folder found.
+
+                for Index, PowerUp in pairs(PowerUpsFolder:GetChildren()) do
+                    if PowerUp:FindFirstChild('TouchInterest') then
+                        -- // Power up has a touchinterest child.
+                        local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
+
+                        if HumanoidRootPart then
+                            -- // Fire touch interest.
+                            firetouchinterest(HumanoidRootPart, PowerUp, 0)
+                            firetouchinterest(HumanoidRootPart, PowerUp, 1)
+                        end
+                    end
+                end
+            end
+        end        
+    end})
+    AutomationSection:AddToggle({Name = "Instant Revive", Keybind = {Mode = 'Dynamic'}, Flag = "InstantRevive"})
+    AutomationSection:AddToggle({Name = "Self Revive", Keybind = {Mode = 'Dynamic'}, Flag = "SelfRevive"})
+end
+
+
+local MiscellaneousSection = GeneralTab:CreateSection({Name = 'Miscellaneous'}) do
+    MiscellaneousSection:AddButton({Name = 'Hide Name', Callback = function()
+        local Char = game.Players.LocalPlayer.Character
+
+        Char.Head.Mesh.Parent = game.CoreGui
+        Char.Head:ClearAllChildren()
+        game.CoreGui.Mesh.Parent = Char.Head
+        Char.Head.Parent = game.Lighting
+        game.Lighting.Head.Parent = Char
+    end})
+end
+
+-- // Draw FOV & ESP (I'm using kiriot's esp library because I'm too lazy to make my own.)
+
+local DrawingObjects = {
+    FOVObject = Drawing.new('Circle')
+}
+
+DrawingObjects.FOVObject.NumSides = 20
+DrawingObjects.FOVObject.Thickness = 1
+
+local CircleTable = {
+    Update = function()
+        CursorPosition = UserInputService:GetMouseLocation()
+        local Circle = DrawingObjects.FOVObject
+
+        -- // Update FOV Position
+
+        Circle.Visible = Library.flags['ShowFOV']
+        Circle.Position = CursorPosition
+        Circle.Radius = Library.flags['FOVRadius']
+        Circle.Color = Library.flags['FOVColor']
+    end
+}
+
+table.insert(ESPLibrary.Objects, CircleTable)
+
+ESPLibrary:AddObjectListener(ZombiesFolder, {
+    Color =  Color3.fromRGB(255, 150, 0),
+    Type = "Model",
+    CustomName = function(Zombie)
+        return Zombie.Name
+    end,
+    IsEnabled = "Zombies",
+})
+
+-- // Auto pickup (PowerUps)
+
+workspace:FindFirstChild('PowerUps').ChildAdded:Connect(function(PowerUp)
+    -- // Wait for touch interest.
+    PowerUp:WaitForChild('TouchInterest', 3)
+
+    if PowerUp:FindFirstChild('TouchInterest') and Library.flags['PowerUps'] then
+        -- // Power up has a touchinterest child.
+        local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
+
+        if HumanoidRootPart then
+            -- // Fire touch interest.
+            firetouchinterest(HumanoidRootPart, PowerUp, 0)
+            firetouchinterest(HumanoidRootPart, PowerUp, 1)
+        end
+    end
+end)
+
+-- // Kinda Optimized Zombies (I think)
+
+ZombiesFolder.ChildAdded:Connect(function(Zombie)
+    table.insert(CurrentZombies, Zombie)
+end)
+
+ZombiesFolder.ChildRemoved:Connect(function(RemoveZombie)
+    for Index, Zombie in pairs(CurrentZombies) do
+        if Zombie == RemoveZombie then
+            return table.remove(CurrentZombies, Index)
+        end
+    end
+end)
+
+coroutine.wrap(function()
+    while task.wait() do
+        local WeaponIndex = FunctionsModule.gunnaseo
+        local Zombies = GetZombies()
+        if Library.flags['KillAura'] and WeaponIndex and (#Zombies > 0) then
+            -- // Kill aura is enabled and a weapon is equipped and there are zombies that are alive. (FunctionsModule.gunnaseo returns the index of the weapon equipped: eg. Melees are usually the third index.)
+            local AccessKey = FunctionsModule.k
+
+            if WeaponIndex ~= 4 then
+                -- // Melee is not equipped.
+                local MagazineValue = FunctionsModule.ammo.Mag.Value
+                local StoredValue = FunctionsModule.ammo.Stored.Value
+
+                if (MagazineValue <= 0) and (StoredValue > 0) then
+                    -- // Mag doesn't have ammo but has stored ammo.
+                    RemoteEvent:FireServer('Reloaded', '3')
+                elseif (MagazineValue <= 0) and (StoredValue <= 0) then
+                    -- // Weapon doesn't have any ammo left.
+                    keypress(0x34)
+                    keyrelease(0x34)
+                end
+            end
+
+            if AccessKey then
+                -- // Access key found.
+                for Index, Zombie in pairs(Zombies) do
+                    local ZombieHumanoid = Zombie:FindFirstChild('Humanoid')
+                    if Zombie and ZombieHumanoid and ZombieHumanoid.Health > 0 then
+                        -- // Zombie is alive.
+                        RemoteEvent:FireServer(AccessKey, {Zombie.Head}, Zombie.Head.Position, true)
+                    end
+                end
+            end
+        end
+
+        if Library.flags['InstantRevive'] then
+            for Index, Player in pairs(Players:GetPlayers()) do
+                if Player ~= LocalPlayer then
+                    -- // Player is not LocalPlayer
+                    local Character = Player.Character
+    
+                    if Character then
+                        local Head = Character:FindFirstChild('Head')
+                        if Head then
+                            local Billboard = Head:FindFirstChild('BillboardGui')
+                            if Billboard then
+                                local ReviveTextLabel = Billboard:FindFirstChild('ReviveTextLabel')
+                                if ReviveTextLabel and ReviveTextLabel.Visible then
+                                    -- // Player is downed.
+                                    RemoteEvent:FireServer('Revive', Player)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    
+        if Library.flags['SelfRevive'] and FunctionsModule.downed then
+            -- // Player is downed.
+            RemoteEvent:FireServer('Revive', LocalPlayer)
+        end
+    end
+end)()
+
+-- // Global Blacklist
+local CurrentMap = workspace:WaitForChild('Map')
+local PerkMachinesColor = setmetatable({
+    ['Witches Brew'] = Color3.fromRGB(0, 255, 0),
+    ['Quick Revive'] = Color3.fromRGB(255, 255, 255),
+    ['Bloxilicious Gum'] = Color3.fromRGB(255, 255, 0),
+    ['Juggerblox'] = Color3.fromRGB(255, 0, 0),
+    ['Goala Cola'] = Color3.fromRGB(0, 0, 255),
+    ['Bloxy Cola'] = Color3.fromRGB(150, 101, 44),
+}, {__index = function()
+    return Color3.new(1, 1, 0)
+end})
+
+local PerkMachinesPrimaryPart = {
+    ['Witches Brew'] = NewInstance('Part', workspace),
+    ['Quick Revive'] = NewInstance('Part', workspace),
+    ['Bloxilicious Gum'] = NewInstance('Part', workspace),
+    ['Juggerblox'] = NewInstance('Part', workspace),
+    ['Goala Cola'] = NewInstance('Part', workspace),
+    ['Bloxy Cola'] = NewInstance('Part', workspace),
+}
+
+local function MapChanging()
+
+    local NormalFilter = {}
+    local IgnoreTable = {}
+
+    for i, v in pairs(CurrentMap:GetChildren()) do
+        if tostring(v) ~= 'BossFolder' then
+            table.insert(IgnoreTable, v)
+        end
+    end
+
+    for i, v in pairs(workspace:GetChildren()) do
+        if tostring(v) ~= 'Map' and tostring(v) ~= 'Zombies' then
+            table.insert(IgnoreTable, v)
+        end
+    end
+
+    WallbangParams.FilterDescendantsInstances = IgnoreTable
+
+    for i, v in pairs(CurrentMap:GetDescendants()) do
+        if v:IsA('BasePart') and v.Transparency == 1 then
+            -- // Part is invisible.
+            table.insert(NormalFilter, v)
+            NormalParams.FilterDescendantsInstances = NormalFilter
+            v.AncestryChanged:Connect(function()
+                if not v.Parent then
+                    
+                    local Index = table.find(NormalFilter, v)
+                    if Index then
+                        table.remove(NormalFilter, Index)
+                        NormalParams.FilterDescendantsInstances = NormalFilter
+                    end
+                end            
+            end)
+        end
+    end
+    
+    CurrentMap.DescendantAdded:Connect(function(v)
+        if v:IsA('BasePart') and v.Transparency == 1 then
+            -- // Part is invisible.
+            table.insert(NormalFilter, v)
+            NormalParams.FilterDescendantsInstances = NormalFilter
+            v.AncestryChanged:Connect(function()
+                if not v.Parent then
+                    local Index = table.find(NormalFilter, v)
+                    if Index then
+                        table.remove(NormalFilter, Index)
+                        NormalParams.FilterDescendantsInstances = NormalFilter
+                    end
+                end            
+            end)
+        end
+    end)
+    
+    CurrentMap.AncestryChanged:Connect(function()
+        if not CurrentMap.Parent then
+            CurrentMap = workspace:WaitForChild('Map')
+            MapChanging()
+        end
+    end)
+
+    local PerkMachines = CurrentMap:WaitForChild('PerkMachines', 5)
+
+    ESPLibrary:AddObjectListener(PerkMachines, {
+        Color =  function(Machine)
+            return PerkMachinesColor[Machine.Name]
+        end,
+        Type = "Model",
+        CustomName = function(Machine)
+            return Machine.Name
+        end,
+        PrimaryPart = function(Machine)
+            local Primary = PerkMachinesPrimaryPart[Machine.Name]
+            Primary.Anchored = true
+            Primary.CFrame = Machine:GetPivot()
+            Primary.Size = Machine:GetExtentsSize()
+            Primary.Transparency = 1
+            Primary.CanCollide = false
+
+            return Primary
+        end,
+        IsEnabled = "PerkMachines",
+    })
+
+    task.spawn(function()
+        local BossFolder = CurrentMap:WaitForChild('BossFolder', 60)
+
+        if BossFolder then
+            ESPLibrary:AddObjectListener(BossFolder, {
+                Color = Color3.fromRGB(255, 150, 0),
+                Type = "Model",
+                CustomName = function(Boss)
+                    return Boss.Name
+                end,
+                Validator = function(Boss)
+    
+                    if Boss:FindFirstChild('Humanoid') then
+                        return true
+                    end
+    
+                    return false
+                end,
+                IsEnabled = "Zombies",
+            })
+        end
+    end)
+end
+
+MapChanging()
