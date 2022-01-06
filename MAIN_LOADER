@@ -1,5 +1,5 @@
 -- // Zombie Uprising Cheat | Credits: Pepsi - UI Library & Kiriot - ESP Library
--- // Works as of 22th December 2021
+-- // Works as of 6th January 2022
 -- // Variables & Functions
 
 -- // Wait until game is loaded.
@@ -7,6 +7,8 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
+local CoreGui = game:GetService('CoreGui')
+local Lighting = game:GetService('Lighting')
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerMouse = LocalPlayer:GetMouse()
@@ -292,13 +294,15 @@ end
 
 local MiscellaneousSection = GeneralTab:CreateSection({Name = 'Miscellaneous'}) do
     MiscellaneousSection:AddButton({Name = 'Hide Name', Callback = function()
-        local Char = game.Players.LocalPlayer.Character
-
-        Char.Head.Mesh.Parent = game.CoreGui
-        Char.Head:ClearAllChildren()
-        game.CoreGui.Mesh.Parent = Char.Head
-        Char.Head.Parent = game.Lighting
-        game.Lighting.Head.Parent = Char
+        local PlayerCharacter = LocalPlayer.Character
+        local PlayerHead = PlayerCharacter:FindFirstChild('Head')
+        local PlayerHeadMesh = PlayerHead.Mesh
+        
+        PlayerHeadMesh.Parent = CoreGui
+        PlayerHead:ClearAllChildren()
+        PlayerHeadMesh.Parent = PlayerCharacter.Head
+        PlayerHead.Parent = Lighting
+        PlayerHead.Parent = PlayerCharacter
     end})
 end
 
