@@ -1,5 +1,5 @@
 -- // Zombie Uprising Cheat | Credits: Pepsi - UI Library & Kiriot - ESP Library
--- // Works as of 6th January 2022
+-- // Works as of 14th January 2022
 -- // Variables & Functions
 
 -- // Wait until game is loaded.
@@ -24,7 +24,7 @@ local RemoteEvent = ReplicatedStorage:WaitForChild('RemoteEvent')
 local WallbangParams = RaycastParams.new()
 local NormalParams = RaycastParams.new()
 local FunctionsModule
-WallbangParams.FilterType = Enum.RaycastFilterType.Blacklist
+WallbangParams.FilterType = Enum.RaycastFilterType.Whitelist
 NormalParams.FilterType = Enum.RaycastFilterType.Blacklist
 ESPLibrary.Players = false
 ESPLibrary:Toggle(true)
@@ -462,19 +462,7 @@ local PerkMachinesPrimaryPart = {
 local function MapChanging()
 
     local NormalFilter = {}
-    local IgnoreTable = {}
-
-    for i, v in pairs(CurrentMap:GetChildren()) do
-        if tostring(v) ~= 'BossFolder' then
-            table.insert(IgnoreTable, v)
-        end
-    end
-
-    for i, v in pairs(workspace:GetChildren()) do
-        if tostring(v) ~= 'Map' and tostring(v) ~= 'Zombies' then
-            table.insert(IgnoreTable, v)
-        end
-    end
+    local IgnoreTable = {ZombiesFolder}
 
     WallbangParams.FilterDescendantsInstances = IgnoreTable
 
@@ -547,6 +535,9 @@ local function MapChanging()
         local BossFolder = CurrentMap:WaitForChild('BossFolder', 60)
 
         if BossFolder then
+            local ZombieBoss = BossFolder:WaitForChild('Boss', 10)
+            table.insert(IgnoreTable, ZombieBoss)
+
             ESPLibrary:AddObjectListener(BossFolder, {
                 Color = Color3.fromRGB(255, 150, 0),
                 Type = "Model",
