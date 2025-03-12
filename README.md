@@ -15,7 +15,7 @@
 ## Script Loader
 
 ```lua
-loadstring(game:HttpGet('https://raw.githubusercontent.com/ArkaneWorks/Zombie-Uprising/main/MAIN_LOADER'))()
+loadstring(game:HttpGet('https://raw.githubusercontent.com/thricee/Zombie-Uprising/refs/heads/main/MAIN_LOADER'))()
 ```
 
 ## Credits
